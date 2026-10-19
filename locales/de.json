@@ -1,0 +1,108 @@
+{
+  "Cancel": "Abbrechen",
+  "Save": "Speichern",
+  "Create a GitHub token": "GitHub-Token erstellen",
+  "Your projects:": "Deine Projekte:",
+  "Create it if it does not exist": "Anlegen, falls es fehlt",
+  "Publish static sites": "Seiten veröffentlichen",
+  "Put a project online with one click – on GitHub Pages or Cloudflare Pages, free and with HTTPS.": "Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare Pages, kostenlos und mit HTTPS.",
+  "Accounts": "Zugänge",
+  "New site": "Neue Seite",
+  "First add a GitHub token or a Cloudflare API token – Hostwerk uses it only for publishing.": "Lege zuerst ein GitHub-Token oder ein Cloudflare-API-Token an – Hostwerk nutzt es nur zum Veröffentlichen.",
+  "Add account": "Zugang hinzufügen",
+  "Edit": "Bearbeiten",
+  "Publish now": "Jetzt veröffentlichen",
+  "Hostwerk runs the build command (if set), checks the folder (index.html, size) and uploads it. Every publish replaces the previous version.": "Hostwerk führt den Build-Befehl aus (falls gesetzt), prüft den Ordner (index.html, Größe) und lädt ihn hoch. Jede Veröffentlichung ersetzt die vorige Fassung.",
+  "Stored sealed on this PC – they never leave it except to GitHub or Cloudflare.": "Versiegelt auf diesem PC gespeichert – sie gehen nur an GitHub bzw. Cloudflare.",
+  "Fine-grained token with “Contents: read and write” and “Pages: read and write” (and “Administration” if Hostwerk should create the repository).": "Fein abgestuftes Token mit „Contents: read and write“ und „Pages: read and write“ (und „Administration“, wenn Hostwerk das Repository anlegen soll).",
+  "Template “Edit Cloudflare Workers” or a token with “Cloudflare Pages: Edit”.": "Vorlage „Edit Cloudflare Workers“ oder ein Token mit „Cloudflare Pages: Edit“.",
+  "Cloudflare account ID": "Cloudflare-Konto-ID",
+  "Shown on the right in the Cloudflare dashboard (Workers & Pages).": "Steht rechts im Cloudflare-Dashboard (Workers & Pages).",
+  "Name": "Name",
+  "e.g. Club website": "z. B. Vereinsseite",
+  "Project folder": "Projektordner",
+  "Build command (optional)": "Build-Befehl (optional)",
+  "e.g. npm run build – empty for plain HTML": "z. B. npm run build – leer bei reinem HTML",
+  "npm run build": "npm run build",
+  "Folder with the finished page": "Ordner mit der fertigen Seite",
+  "e.g. dist, build, public – “.” for the project folder": "z. B. dist, build, public – „.“ für den Projektordner",
+  "Where to": "Wohin",
+  "Repository": "Repository",
+  "owner/name – e.g. alex/club-site. owner/owner.github.io becomes your main page.": "besitzer/name – z. B. alex/vereinsseite. besitzer/besitzer.github.io wird deine Hauptseite.",
+  "Cloudflare project name": "Cloudflare-Projektname",
+  "No site yet": "Noch keine Seite",
+  "Add a site: project folder, build command, folder with the finished page and where it should go.": "Lege eine Seite an: Projektordner, Build-Befehl, Ordner mit der fertigen Seite und wohin sie soll.",
+  "Remove": "Entfernen",
+  "What happens": "Was passiert",
+  "GitHub token (saved – enter a new one to replace it)": "GitHub-Token (gespeichert – neues eingeben, um es zu ersetzen)",
+  "GitHub token": "GitHub-Token",
+  "Cloudflare API token (saved)": "Cloudflare-API-Token (gespeichert)",
+  "Cloudflare API token": "Cloudflare-API-Token",
+  "GitHub Pages": "GitHub Pages",
+  "Cloudflare Pages": "Cloudflare Pages",
+  "Only the entry in Hostwerk – the published page stays online.": "Nur der Eintrag in Hostwerk – die veröffentlichte Seite bleibt online.",
+  "Saved": "Gespeichert",
+  "Publish {name}": "{name} veröffentlichen",
+  "Build: {cmd}": "Build: {cmd}",
+  "Upload to GitHub Pages …": "Hochladen zu GitHub Pages …",
+  "Upload to Cloudflare Pages …": "Hochladen zu Cloudflare Pages …",
+  "Site not found": "Seite nicht gefunden",
+  "The project folder does not exist.": "Der Projektordner existiert nicht.",
+  "The build failed – see the log.": "Der Build ist fehlgeschlagen – siehe Protokoll.",
+  "The output folder must be inside the project.": "Der Ausgabe-Ordner muss im Projekt liegen.",
+  "Add a GitHub token first.": "Zuerst ein GitHub-Token hinterlegen.",
+  "Add the Cloudflare API token and account ID first.": "Zuerst Cloudflare-API-Token und Konto-ID hinterlegen.",
+  "The output folder path contains characters that are not allowed.": "Der Pfad des Ausgabe-Ordners enthält nicht erlaubte Zeichen.",
+  "The folder to publish does not exist – build the project first?": "Der Ordner zum Veröffentlichen existiert nicht – erst das Projekt bauen?",
+  "The folder is empty.": "Der Ordner ist leer.",
+  "There is no index.html in the folder – pick the folder with the built page.": "Im Ordner liegt keine index.html – wähle den Ordner mit der gebauten Seite.",
+  "More than 200 MB – too big for static hosting.": "Mehr als 200 MB – zu groß für statisches Hosting.",
+  "A GitHub token is needed.": "Ein GitHub-Token wird gebraucht.",
+  "Repository as owner/name, e.g. alex/my-site": "Repository als besitzer/name, z. B. alex/meine-seite",
+  "The repository does not exist – tick “create it” or create it on GitHub.": "Das Repository gibt es nicht – „Anlegen, falls es fehlt“ ankreuzen oder auf GitHub anlegen.",
+  "Project name: small letters, digits and -, e.g. my-site": "Projektname: Kleinbuchstaben, Ziffern und -, z. B. meine-seite",
+  "Published with Hostwerk": "Mit Hostwerk veröffentlicht",
+  "$patterns": [
+    [
+      "Site “{}”",
+      "Seite „{}“"
+    ],
+    [
+      "Remove “{}”?",
+      "„{}“ entfernen?"
+    ],
+    [
+      "GitHub Pages · {}",
+      "GitHub Pages · {}"
+    ],
+    [
+      "Cloudflare Pages · {}",
+      "Cloudflare Pages · {}"
+    ],
+    [
+      "More than {} files – is this really the built site (e.g. dist/)?",
+      "Mehr als {} Dateien – ist das wirklich die gebaute Seite (z. B. dist/)?"
+    ],
+    [
+      "Published: {}",
+      "Veröffentlicht: {}"
+    ],
+    [
+      "Create repository {}",
+      "Repository {} anlegen"
+    ],
+    [
+      "Upload {} files",
+      "{} Dateien hochladen"
+    ],
+    [
+      "GitHub: {}",
+      "GitHub: {}"
+    ]
+  ],
+  "small letters, digits and - · the page will be at NAME.pages.dev": "Kleinbuchstaben, Ziffern und - · die Seite liegt dann unter NAME.pages.dev",
+  "GitHub does not accept the token.": "GitHub nimmt das Token nicht an.",
+  "The token may not do this (it needs the rights “Contents” and “Pages” for the repository).": "Das Token darf das nicht (es braucht die Rechte „Contents“ und „Pages“ für das Repository).",
+  "Cloudflare did not accept the upload – see the log.": "Cloudflare hat das Hochladen nicht angenommen – siehe Protokoll.",
+  "Node.js (npx) is needed for Cloudflare – install it under Projects & apps → Runtimes.": "Für Cloudflare wird Node.js (npx) gebraucht – installiere es unter Projekte & Apps → Laufzeiten."
+}
