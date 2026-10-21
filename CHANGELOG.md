@@ -1,3 +1,8 @@
+## 1.2.0
+
+- The site check uses Hostwerk's own one (SDK 3.1, `host.service('sitecheck')`): Hostwerk serves the built folder for a moment and goes through it like a visitor – the same check as for projects, also finding var_dump output and framework debug pages. On older Hostwerk the built-in check on the files stays. / Seiten-Check nutzt Hostwerks eigenen (SDK 3.1): Ordner kurz bereitgestellt und wie ein Besucher abgerufen; auf älterem Hostwerk bleibt der eingebaute.
+- The report says how it was checked; a missing output folder gives a clear message instead of an error. / Bericht sagt, wie geprüft wurde; fehlender Ausgabeordner mit klarer Meldung.
+
 ## 1.1.0
 
 - Own domain: CNAME for GitHub Pages, custom domain at Cloudflare, .domains for Codeberg. / Eigene Domain.

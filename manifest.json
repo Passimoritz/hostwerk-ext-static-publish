@@ -9,7 +9,7 @@
     "de": "Projekte mit einem Klick veröffentlichen – auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder deinen eigenen Server (SFTP), mit eigener Domain, Seiten-Check vorher und Zurück auf frühere Versionen.",
     "en": "Publish projects with one click – on GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server (SFTP), with an own domain, a site check first and going back to earlier versions."
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-static-publish",
   "license": "MIT",

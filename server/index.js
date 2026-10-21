@@ -4,7 +4,8 @@
  *   GET  /api/static-publish                      → { sites, accounts: { github, cloudflare, codeberg }, projects }
  *   PUT  /api/static-publish/accounts             → { githubToken, cloudflareToken, cloudflareAccount, codebergToken } (sealed on this PC)
  *   PUT  /api/static-publish/sites                → save the list of sites (an SFTP password/key comes along once and is sealed)
- *   POST /api/static-publish/sites/:id/check      → site check right on the built files (no upload)
+ *   POST /api/static-publish/sites/:id/check      → site check of the built files (no upload) – Hostwerk's own check (SDK 3.1),
+ *                                                   on older Hostwerk the built-in one right on the files
  *   POST /api/static-publish/sites/:id/deploy     → job: build (optional), check, then publish; result in the site's history
  *   POST /api/static-publish/sites/:id/rollback   → { index } job: back to an earlier publish from the history (GitHub, Cloudflare)
  * Targets: GitHub Pages, Cloudflare Pages, Codeberg Pages, own server per SFTP – each with an own domain if wanted.
@@ -54,6 +55,19 @@ function activate(host) {
     return out;
   };
   const tr = (list) => list.map((x) => ({ ...x, text: host.t(x.text) }));
+  /**
+   * Seiten-Check: Hostwerks eigener (SDK 3.1, host.service('sitecheck') – liefert den Ordner kurz lokal aus und geht ihn ab
+   * wie ein Besucher), auf älterem Hostwerk der eingebaute direkt auf den Dateien. → { pages, errors, warnings, engine }
+   */
+  const coreCheck = () => { try { const sc = host.service('sitecheck'); return sc && typeof sc.checkDir === 'function' ? sc : null; } catch { return null; } };
+  async function checkSite(out, site) {
+    const base = P.sitePath(site);
+    const sc = coreCheck();
+    if (sc) {
+      try { return { ...P.fromCore(await sc.checkDir(out, { base, max: 200 }), base), engine: 'hostwerk' }; } catch (e) { if (e && e.status === 400) throw e; /* sonst eigener Check */ }
+    }
+    return { ...P.checkSite(out, { base }), engine: 'own' };
+  }
 
   host.router.get('/static-publish', (req, res) => res.json(view()));
   host.router.put('/static-publish/accounts', (req, res) => {
@@ -77,10 +91,12 @@ function activate(host) {
     write('sites', list); res.json(view());
   });
 
-  host.router.post('/static-publish/sites/:id/check', (req, res) => {
+  host.router.post('/static-publish/sites/:id/check', async (req, res) => {
     const site = read('sites', []).find((s) => s.id === req.params.id);
     if (!site) throw host.error(404, 'Site not found');
-    const r = P.checkSite(outDir(site), { base: P.sitePath(site) });
+    const out = outDir(site);
+    if (!fs.existsSync(out)) throw host.error(400, 'The output folder does not exist yet – build the site first.');
+    const r = await checkSite(out, site);
     res.json({ ...r, errors: tr(r.errors), warnings: tr(r.warnings) });
   });
 
@@ -102,7 +118,7 @@ function activate(host) {
         // Seiten-Check vor dem Hochladen: kaputte Links, fehlende Dateien, Debug-Ausgaben
         if (site.check !== 'off') {
           j.progress(30, host.t('Checking the site …'));
-          const c = P.checkSite(out, { base: P.sitePath(site) });
+          const c = await checkSite(out, site);
           for (const x of [...c.errors, ...c.warnings].slice(0, 40)) j.log(`${x.file}: ${host.t(x.text)}${x.ref ? ` (${x.ref})` : ''}`);
           if (c.errors.length && site.check === 'block') throw host.error(400, 'The site check found {n} problem(s) – see the log. Fix them or set the check to “only warn”.', { n: c.errors.length });
         }

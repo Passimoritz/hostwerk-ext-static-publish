@@ -98,6 +98,7 @@ function CheckReport({ site, r, onClose }) {
     <Modal title={t('Site check: {name}', { name: site.name })} size="lg" onClose={onClose} footer={<Btn className="primary" onClick={onClose}>Done</Btn>}>
       <div className="stack">
         <Callout kind={r.errors.length ? 'err' : r.warnings.length ? 'warn' : 'ok'} dismissible={false}>{r.errors.length || r.warnings.length ? t('{p} pages · {e} problems · {w} hints', { p: r.pages, e: r.errors.length, w: r.warnings.length }) : t('{p} pages – no problems found.', { p: r.pages })}</Callout>
+        {r.engine && <div className="tiny muted">{r.engine === 'hostwerk' ? t('Checked like a visitor: Hostwerk served the built folder for a moment and went through every page.') : t('Checked right on the built files.')}{r.truncated ? ` ${t('Only the first 200 pages were checked.')}` : ''}</div>}
         {[...r.errors.map((x) => ({ ...x, err: true })), ...r.warnings].slice(0, 200).map((x, i) => (
           <div key={i} className="row-tight small sp-issue">
             {x.err ? <XCircle size={14} className="c-err" aria-label="Problem" /> : <SearchCheck size={14} className="c-warn" aria-label="Hint" />}

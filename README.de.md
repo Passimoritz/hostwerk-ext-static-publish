@@ -16,7 +16,7 @@ Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare 
 - Eigene Domain für jedes Ziel (CNAME, Cloudflare-Domain, Codeberg .domains)
 - Optionaler Build-Befehl vor jeder Veröffentlichung, mit Protokoll
 - Prüfungen vor dem Hochladen: index.html vorhanden, kein .git, node_modules oder .env, Größengrenzen
-- Seiten-Check direkt auf den gebauten Dateien: kaputte Links, fehlende Bilder/CSS/JS, Links mit / am Anfang, die auf GitHub-Projektseiten ins Leere zeigen, fehlende Titel, vergessene Fehlermeldungen – nur warnen, bei Problemen anhalten oder aus; auch als Knopf „Prüfen“
+- Seiten-Check vor dem Veröffentlichen mit Hostwerks eigenem Seiten-Check (ab Hostwerk 3.0, sonst direkt auf den gebauten Dateien): kaputte Links, fehlende Bilder/CSS/JS, Links mit / am Anfang, die auf GitHub-Projektseiten ins Leere zeigen, fehlende Titel, vergessene Fehlermeldungen – nur warnen, bei Problemen anhalten oder aus; auch als Knopf „Prüfen“
 - Tokens und SFTP-Anmeldungen versiegelt auf diesem PC; Verlauf der letzten 10 Veröffentlichungen je Seite mit „Zurückgehen“ (GitHub, Cloudflare)
 
 ## Installieren

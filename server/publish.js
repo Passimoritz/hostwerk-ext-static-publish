@@ -152,6 +152,37 @@ function checkSite(dir, { base = '/' } = {}) {
   }
   return { pages: pages.length, errors, warnings };
 }
+/**
+ * Ergebnis von Hostwerks Seiten-Check (SDK 3.1, host.service('sitecheck').checkDir) in die Form von checkSite():
+ * { pages, errors: [{ file, text, ref }], warnings }. Hostwerk schreibt deutsch – bekannte Befunde bekommen den englischen
+ * Text dieser Erweiterung (host.t übersetzt ihn), Langsamkeit zählt bei der lokalen Probe nicht.
+ */
+const CORE_TEXT = [
+  [/^PHP-/, 'PHP message visible'], [/^Fehler-Stacktrace/, 'Error stack trace visible'], [/^SQL-Fehlermeldung/, 'SQL error message visible'],
+  [/^var_dump/, 'var_dump output visible'], [/^Debug-Seite/, 'Framework debug page visible'],
+  [/^Kein <title>/, 'No <title> – bad for search engines and bookmarks'], [/^Unsichere http:/, 'Insecure http:// content – browsers block it on https pages'],
+  [/^Sehr groß/, 'Very large HTML page'],
+];
+function fromCore(r, base = '/') {
+  const b = `/${String(base || '/').replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/');
+  const rel = (u) => { const s = String(u || ''); if (!s.startsWith(b)) return s.replace(/^\/+/, '') || 'index.html'; const x = s.slice(b.length); return !x ? 'index.html' : x.endsWith('/') ? `${x}index.html` : x; };
+  const errors = []; const warnings = [];
+  for (const p of (r && r.pages) || []) {
+    for (const i of p.issues || []) {
+      if (/^(HTTP-Fehler|Nicht erreichbar|Langsam)/.test(i.text)) continue; // kaputte Seiten stehen unten, Tempo zählt lokal nicht
+      const hit = CORE_TEXT.find(([re]) => re.test(i.text));
+      const text = hit ? hit[1] : i.text;
+      if (i.level === 'err') errors.push({ file: rel(p.url), text });
+      else if (i.level === 'warn' || (hit && /<title>/.test(text))) warnings.push({ file: rel(p.url), text });
+    }
+  }
+  for (const x of (r && r.broken) || []) {
+    const outside = b !== '/' && String(x.url).startsWith('/') && !String(x.url).startsWith(b);
+    errors.push({ file: x.foundOn && x.foundOn[0] ? rel(x.foundOn[0]) : '–', text: outside ? 'Link starts with / – on this page it points outside the site' : 'Missing file or page', ref: x.url });
+  }
+  return { pages: ((r && r.pages) || []).filter((p) => p.status > 0 && p.status < 400).length, errors, warnings, truncated: !!(r && r.summary && r.summary.truncated) };
+}
+
 /** Path under which a target serves the site: GitHub project pages live under /<repo>/, everything else at /. */
 function sitePath(site) {
   if (site.target === 'github' && !site.domain && REPO_RE.test(site.repo || '')) { const [owner, name] = site.repo.split('/'); return name.toLowerCase() === `${owner.toLowerCase()}.github.io` ? '/' : `/${name}/`; }
@@ -276,5 +307,5 @@ async function sftpUpload(dir, target, sftp, { log = () => {} } = {}) {
   return { url: target.url || null, files: files.length };
 }
 
-module.exports = { collect, githubPages, wranglerArgs, wranglerUrl, REPO_RE, CF_NAME, cleanDomain, checkSite, sitePath, githubRollback, cloudflareRollback, cloudflareDomain, codebergPages, sftpUpload, gitBlobSha };
+module.exports = { collect, githubPages, wranglerArgs, wranglerUrl, REPO_RE, CF_NAME, cleanDomain, checkSite, fromCore, sitePath, githubRollback, cloudflareRollback, cloudflareDomain, codebergPages, sftpUpload, gitBlobSha };
 

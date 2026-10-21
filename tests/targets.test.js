@@ -58,6 +58,59 @@ test('site check: broken links, missing assets, root links on GitHub project pag
   assert.strictEqual(P.sitePath({ target: 'codeberg', repo: 'alex/pages' }), '/');
 });
 
+test('site check with Hostwerk (SDK 3.1): core result in the own form – files instead of addresses, English texts, links past the base', () => {
+  const core = {
+    pages: [
+      { url: '/club/', status: 200, issues: [{ level: 'info', text: 'Kein <title> – schlecht für Suchmaschinen und Lesezeichen' }, { level: 'info', text: '2 Bild(er) ohne alt-Text' }] },
+      { url: '/club/kontakt.html', status: 200, issues: [{ level: 'err', text: 'PHP-Warning sichtbar', snippet: 'x' }, { level: 'warn', text: 'Langsam: 2,1 s' }, { level: 'warn', text: 'Unsichere http://-Inhalte auf einer https-Seite' }] },
+      { url: '/club/weg.html', status: 404, issues: [{ level: 'err', text: 'HTTP-Fehler 404' }] },
+    ],
+    broken: [
+      { url: '/club/img/logo.png', kind: 'Bild', status: 404, foundOn: ['/club/'] },
+      { url: '/css/a.css', kind: 'CSS/Icon', status: 404, foundOn: ['/club/kontakt.html'] },
+      { url: '/club/weg.html', kind: 'Seite', status: 404, foundOn: ['/club/'] },
+    ],
+    summary: { truncated: false },
+  };
+  const r = P.fromCore(core, '/club/');
+  assert.strictEqual(r.pages, 2);
+  assert.deepStrictEqual(r.errors.map((e) => [e.file, e.text, e.ref || null]), [
+    ['kontakt.html', 'PHP message visible', null],
+    ['index.html', 'Missing file or page', '/club/img/logo.png'],
+    ['kontakt.html', 'Link starts with / – on this page it points outside the site', '/css/a.css'],
+    ['index.html', 'Missing file or page', '/club/weg.html'],
+  ]);
+  assert.deepStrictEqual(r.warnings.map((w) => [w.file, w.text]), [['index.html', 'No <title> – bad for search engines and bookmarks'], ['kontakt.html', 'Insecure http:// content – browsers block it on https pages']]);
+  const de = require('../locales/de.json');
+  for (const x of [...r.errors, ...r.warnings]) assert.ok(de[x.text], `German for ${x.text}`);
+  assert.strictEqual(P.fromCore(core, '/').errors.find((e) => e.ref === '/css/a.css').text, 'Missing file or page', 'own domain: no base to miss');
+  assert.deepStrictEqual(P.fromCore(null), { pages: 0, errors: [], warnings: [], truncated: false });
+});
+
+test('site check: the page uses Hostwerk\'s check when it is there and falls back to its own', async () => {
+  const d = folder({ 'index.html': '<title>Home</title><a href="gone.html">Gone</a>' });
+  const routes = {};
+  const host = {
+    ctx: { paths: { data: fs.mkdtempSync(path.join(os.tmpdir(), 'sp-data-')) }, devtools: null },
+    core: (n) => (n === 'jobs' ? { runJob: () => ({ id: 'j' }) } : n === 'util' ? { exec: async () => ({ code: 0 }) } : { seal: (x) => x, open: (x) => x }),
+    router: { get() {}, put() {}, post: (p, fn) => { routes[p] = fn; } },
+    t: (s) => s, error: (status, m) => Object.assign(new Error(m), { status }), lib: () => null,
+  };
+  const call = async () => { let out; await routes['/static-publish/sites/:id/check']({ params: { id: 'abc123' } }, { json: (x) => { out = x; } }); return out; };
+  fs.mkdirSync(path.join(host.ctx.paths.data, 'static-publish'), { recursive: true });
+  fs.writeFileSync(path.join(host.ctx.paths.data, 'static-publish', 'sites.json'), JSON.stringify([{ id: 'abc123', name: 'S', dir: d, out: '.', target: 'github', repo: 'alex/club' }]));
+  // Hostwerk ohne Dienst (vor 3.0): eigener Check
+  require('../server/index').activate({ ...host, service: () => { throw new Error('service: sitecheck is not shared'); } });
+  let r = await call();
+  assert.strictEqual(r.engine, 'own'); assert.ok(r.errors.some((e) => e.ref === 'gone.html'));
+  // Mit Dienst: dessen Ergebnis, mit base der Projektseite
+  let seen = null;
+  require('../server/index').activate({ ...host, service: () => ({ checkDir: async (dir, o) => { seen = o; return { pages: [{ url: '/club/', status: 200, issues: [] }], broken: [{ url: '/club/gone.html', status: 404, foundOn: ['/club/'] }], summary: {} }; } }) });
+  r = await call();
+  assert.strictEqual(r.engine, 'hostwerk'); assert.strictEqual(seen.base, '/club/');
+  assert.deepStrictEqual(r.errors, [{ file: 'index.html', text: 'Missing file or page', ref: '/club/gone.html' }]);
+});
+
 test('GitHub: own domain goes into CNAME and the Pages settings; back to an earlier commit as a new commit', async () => {
   const blobs = {};
   const f = await fakeApi((m, u, b) => {
