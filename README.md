@@ -12,9 +12,12 @@ Put a project online with one click – on GitHub Pages or Cloudflare Pages, fre
 
 - GitHub Pages without a local git: upload through GitHub's API into the branch gh-pages, Pages switched on, repository created on request
 - Cloudflare Pages through Cloudflare's own tool (wrangler)
+- Codeberg Pages (one commit with only the changes) and your own server per SFTP (stale files are removed)
+- Own domain for every target (CNAME, Cloudflare custom domain, Codeberg .domains)
 - Optional build command before every publish, with log
 - Checks before uploading: index.html present, no .git, node_modules or .env, size limits
-- Tokens sealed on this PC; history of the last 10 publishes per site
+- Site check right on the built files: broken links, missing pictures/CSS/JS, root links that break on GitHub project pages, missing titles, left-over error messages – only warn, stop on problems or off; also as a “Check” button
+- Tokens and SFTP logins sealed on this PC; history of the last 10 publishes per site with “Go back” (GitHub, Cloudflare)
 
 ## Install
 

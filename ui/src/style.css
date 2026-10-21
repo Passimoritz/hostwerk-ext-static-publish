@@ -1,2 +1,6 @@
 /* Static publish */
 .sp-chips { flex-wrap: wrap; }
+.sp-body { gap: var(--sp-2); }
+.sp-actions { flex-wrap: wrap; }
+.sp-issue { align-items: flex-start; }
+.sp-file { flex: 0 0 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

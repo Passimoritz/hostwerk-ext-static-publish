@@ -6,10 +6,10 @@
     "en": "Publish static sites"
   },
   "description": {
-    "de": "Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare Pages, kostenlos und mit HTTPS. Mit Build-Befehl (z. B. npm run build), Prüfung des Ordners und Verlauf je Seite.",
-    "en": "Put a project online with one click – on GitHub Pages or Cloudflare Pages, free and with HTTPS. With a build command (e.g. npm run build), a check of the folder and history per site."
+    "de": "Projekte mit einem Klick veröffentlichen – auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder deinen eigenen Server (SFTP), mit eigener Domain, Seiten-Check vorher und Zurück auf frühere Versionen.",
+    "en": "Publish projects with one click – on GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server (SFTP), with an own domain, a site check first and going back to earlier versions."
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-static-publish",
   "license": "MIT",
@@ -27,11 +27,19 @@
       "en": "Publish sites"
     },
     "description": {
-      "de": "Projekte auf GitHub Pages oder Cloudflare Pages bringen.",
-      "en": "Put projects on GitHub Pages or Cloudflare Pages."
+      "de": "Projekte auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder den eigenen Server bringen.",
+      "en": "Put projects on GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server."
     },
-    "icon": "rocket"
+    "icon": "rocket",
+    "nav": {
+      "group": "develop"
+    }
   },
   "backend": "server/index.js",
-  "ui": "ui/index.js"
+  "ui": "ui/index.js",
+  "allowExtensions": {
+    "*": [
+      "tabs"
+    ]
+  }
 }
