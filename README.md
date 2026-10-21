@@ -10,6 +10,7 @@ Put a project online with one click – on GitHub Pages or Cloudflare Pages, fre
 
 ## What it does
 
+- **Where:** Projects → Publish – no own sidebar entry since 1.3.0; the full page stays under Extensions → Open
 - GitHub Pages without a local git: upload through GitHub's API into the branch gh-pages, Pages switched on, repository created on request
 - Cloudflare Pages through Cloudflare's own tool (wrangler)
 - Codeberg Pages (one commit with only the changes) and your own server per SFTP (stale files are removed)

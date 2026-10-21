@@ -204,5 +204,6 @@
   "Very large HTML page": "Sehr große HTML-Seite",
   "Checked like a visitor: Hostwerk served the built folder for a moment and went through every page.": "Geprüft wie ein Besucher: Hostwerk hat den gebauten Ordner kurz bereitgestellt und jede Seite abgerufen.",
   "Checked right on the built files.": "Direkt an den gebauten Dateien geprüft.",
-  "Only the first 200 pages were checked.": "Geprüft wurden nur die ersten 200 Seiten."
+  "Only the first 200 pages were checked.": "Geprüft wurden nur die ersten 200 Seiten.",
+  "Publish": "Veröffentlichen"
 }

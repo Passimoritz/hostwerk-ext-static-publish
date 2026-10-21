@@ -10,6 +10,7 @@ Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare 
 
 ## Was sie kann
 
+- **Wo:** Projekte → Veröffentlichen – seit 1.3.0 ohne eigenen Seitenleisten-Eintrag; die ganze Seite bleibt unter Erweiterungen → Öffnen
 - GitHub Pages ohne lokales git: Hochladen über GitHubs Schnittstelle in den Zweig gh-pages, Pages wird eingeschaltet, Repository auf Wunsch angelegt
 - Cloudflare Pages über Cloudflares eigenes Werkzeug (wrangler)
 - Codeberg Pages (ein Commit nur mit den Änderungen) und dein eigener Server per SFTP (Veraltetes wird entfernt)

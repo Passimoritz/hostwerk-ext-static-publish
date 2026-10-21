@@ -1,3 +1,7 @@
+## 1.3.0
+
+- Lives where it belongs: Projects → Publish – no own sidebar entry any more (Hostwerk 3.0+); the full page stays under Extensions → Open and can be pinned in the sidebar settings. / Steckt jetzt dort, wo sie hingehört: Projekte → Veröffentlichen – kein eigener Seitenleisten-Eintrag mehr (Hostwerk 3.0+); die ganze Seite bleibt unter Erweiterungen → Öffnen und lässt sich in den Seitenleisten-Einstellungen anheften.
+
 ## 1.2.0
 
 - The site check uses Hostwerk's own one (SDK 3.1, `host.service('sitecheck')`): Hostwerk serves the built folder for a moment and goes through it like a visitor – the same check as for projects, also finding var_dump output and framework debug pages. On older Hostwerk the built-in check on the files stays. / Seiten-Check nutzt Hostwerks eigenen (SDK 3.1): Ordner kurz bereitgestellt und wie ein Besucher abgerufen; auf älterem Hostwerk bleibt der eingebaute.
