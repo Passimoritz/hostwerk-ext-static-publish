@@ -4,7 +4,7 @@
 
 Put a project online with one click – on GitHub Pages or Cloudflare Pages, free and with HTTPS. With a build command (e.g. npm run build), a check of the folder and history per site.
 
-[Deutsch](README.de.md) · An official [Hostwerk](https://github.com/Passimoritz/hostwerk-public) extension (SDK 2.7, native extension)
+[Deutsch](README.de.md) · An official [Hostwerk](https://github.com/Passimoritz/hostwerk-public) extension (native extension, Hostwerk 2.10 or newer)
 
 ![Screenshot](docs/screenshot.png)
 

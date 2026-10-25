@@ -4,7 +4,7 @@
 
 Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare Pages, kostenlos und mit HTTPS. Mit Build-Befehl (z. B. npm run build), Prüfung des Ordners und Verlauf je Seite.
 
-[English](README.md) · Eine offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public) Erweiterung (SDK 2.7, native Erweiterung)
+[English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (native Erweiterung, ab Hostwerk 2.10)
 
 ![Screenshot](docs/screenshot.de.png)
 
