@@ -193,6 +193,9 @@ function activate(host) {
     }, { key: `static-publish-${site.id}` });
     res.json({ job: job.id });
   });
+
+  // 2.0: Teil „Verlauf“ (bis 1.1 eigene Erweiterung „Deploy-Protokoll“) – Routen /deploy-log/…, Daten data/deploy-log/
+  require('./deploylog').mount(host);
 }
 
 function deactivate() {}

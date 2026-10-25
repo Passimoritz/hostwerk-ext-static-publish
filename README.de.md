@@ -2,6 +2,8 @@
 
 # Seiten veröffentlichen
 
+> **Seit 2.0 mit Verlauf:** Hier steckt auch die frühere Erweiterung „Deploy-Protokoll“. Unter Projekte → Veröffentlichen schaltest du zwischen **Seiten** und **Verlauf** um – jedes Veröffentlichen, jeder Git-Pull und jede veröffentlichte Seite mit Zeit, Commit, Snapshot und Ergebnis, mit einem Klick zurück. Der Verlauf je Projekt steht weiter als Reiter an jedem Projekt, dazu die Kachel. Wer das Deploy-Protokoll hatte, bekommt diese Fassung automatisch; Daten und Einstellungen bleiben.
+
 Ein Projekt mit einem Klick online bringen – auf GitHub Pages oder Cloudflare Pages, kostenlos und mit HTTPS. Mit Build-Befehl (z. B. npm run build), Prüfung des Ordners und Verlauf je Seite.
 
 [English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (native Erweiterung, ab Hostwerk 2.10)

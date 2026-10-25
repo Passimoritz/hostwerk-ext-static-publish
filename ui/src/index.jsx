@@ -3,6 +3,7 @@ import { Rocket, Plus, Trash2, GitBranch, Cloud, ExternalLink, KeyRound, Save, C
 import { put, post, useApi, waitJob, openExternal } from '@hostwerk/api';
 import { Btn, Seg, Field, Modal, Empty, Loading, InfoTip, PathInput, Callout, toast, confirmDialog } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
+import { DeployLogPage, ProjectTab as DeployLogProjectTab, DeployLogTile } from './log';
 import './style.css';
 
 /*
@@ -110,7 +111,7 @@ function CheckReport({ site, r, onClose }) {
   );
 }
 
-function StaticPublishPage() {
+function StaticPublishPage({ seg = null }) {
   const st = useApi('/static-publish', [], { live: false });
   const [acc, setAcc] = useState(false);
   const [edit, setEdit] = useState(null);
@@ -149,6 +150,7 @@ function StaticPublishPage() {
           <Btn className="sm primary" icon={Plus} onClick={() => setEdit({ id: uid(), name: '', dir: '', build: '', out: 'dist', target: 'github', repo: '', create: true, project: '', domain: '', check: 'warn' })}>New site</Btn>
         </div>
       </div>
+      {seg}
       {noAccount && <div className="card mb"><div className="card-body row-tight"><span className="small grow">First add a token for GitHub, Cloudflare or Codeberg – Hostwerk uses it only for publishing. For your own server you enter the login at the site.</span><Btn className="sm" icon={KeyRound} onClick={() => setAcc(true)}>Add account</Btn></div></div>}
       {!d.sites.length ? <Empty icon={Rocket} title="No site yet" text="Add a site: project folder, build command, folder with the finished page and where it should go." /> : (
         <div className="grid grid-2">
@@ -204,11 +206,40 @@ function StaticPublishPage() {
   );
 }
 
+/**
+ * 2.0: Seiten und Verlauf (bis 1.1 eigene Erweiterung „Deploy-Protokoll“) unter einem Dach – Adressen #/ext/static-publish
+ * (Seiten) und #/ext/static-publish/log[/<projekt>] (Verlauf, wie früher #/ext/deploy-log).
+ */
+function PublishArea({ path = [] }) {
+  const [view, setView] = useState(path[0] === 'log' ? 'log' : 'sites');
+  const seg = (
+    <div className="sub-nav sp-views">
+      <Seg value={view} onChange={setView} options={[{ id: 'sites', label: t('Sites'), icon: Rocket }, { id: 'log', label: t('History'), icon: History }]} />
+    </div>
+  );
+  if (view !== 'log') return <StaticPublishPage seg={seg} />;
+  return (
+    <div className="page fade-in">
+      <div className="page-head">
+        <div>
+          <h1><Rocket /> Publish static sites</h1>
+          <p>What was published when – with commit and snapshot, and one click back to an earlier state.</p>
+        </div>
+      </div>
+      {seg}
+      <DeployLogPage path={path[0] === 'log' ? path.slice(1) : []} bare />
+    </div>
+  );
+}
+
 export default {
-  pages: { main: StaticPublishPage },
+  pages: { main: PublishArea },
   slots: {
     // Seit Hostwerk 3.0 (SDK 3.2) ohne eigenen Seitenleisten-Eintrag ("nav": false) – die ganze Seite als Reiter im passenden Bereich;
-    // Hostwerk blendet dabei ihren Titel aus (Reiter + Herkunftszeile sagen schon, was es ist), die Knöpfe bleiben
-    'projects.tabs': [{ id: 'publish', title: 'Publish', icon: Rocket, Component: StaticPublishPage, order: 50 }],
+    // Hostwerk blendet dabei ihren Titel aus (Reiter + Herkunftszeile sagen schon, was es ist), die Knöpfe bleiben.
+    // 2.0: EIN Reiter „Veröffentlichen“ unter Projekte (Seiten + Verlauf), der Verlauf je Projekt und die Kachel vom Deploy-Protokoll
+    'projects.tabs': [{ id: 'publish', title: 'Publish', icon: Rocket, Component: PublishArea, order: 50 }],
+    'project.tabs': [{ id: 'deploy-log', title: 'Deploy log', icon: History, Component: DeployLogProjectTab, order: 75 }],
+    'dashboard.tiles': [{ id: 'recent', title: 'Recent deploys', icon: History, size: 'third', Component: DeployLogTile }],
   },
 };

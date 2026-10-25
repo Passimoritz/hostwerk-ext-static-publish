@@ -6,10 +6,10 @@
     "en": "Publish static sites"
   },
   "description": {
-    "de": "Projekte mit einem Klick veröffentlichen – auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder deinen eigenen Server (SFTP), mit eigener Domain, Seiten-Check vorher und Zurück auf frühere Versionen.",
-    "en": "Publish projects with one click – on GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server (SFTP), with an own domain, a site check first and going back to earlier versions."
+    "de": "Projekte mit einem Klick veröffentlichen – auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder deinen eigenen Server (SFTP), mit eigener Domain und Seiten-Check vorher. Dazu der Verlauf: jedes Veröffentlichen, jeder Git-Pull und jede veröffentlichte Seite mit Zeit, Stand (Commit und Snapshot) und Ergebnis – je Projekt, mit einem Klick zurück auf einen früheren Stand.",
+    "en": "Publish projects with one click – to GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server (SFTP), with your own domain and a page check first. Plus the history: every publish, every Git pull and every published site with time, state (commit and snapshot) and result – per project, one click back to an earlier state."
   },
-  "version": "1.3.1",
+  "version": "2.0.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-static-publish",
   "license": "MIT",
@@ -17,7 +17,11 @@
   "banner": "banner.svg",
   "color": "#f97316",
   "category": "developer",
-  "hostwerk": ">=2.10.0",
+  "hostwerk": ">=3.1.0",
+  "sdkVersion": "3.8",
+  "replaces": [
+    "deploy-log"
+  ],
   "permissions": [
     "native"
   ],
@@ -27,8 +31,8 @@
       "en": "Publish sites"
     },
     "description": {
-      "de": "Projekte auf GitHub Pages, Cloudflare Pages, Codeberg Pages oder den eigenen Server bringen.",
-      "en": "Put projects on GitHub Pages, Cloudflare Pages, Codeberg Pages or your own server."
+      "de": "Projekte veröffentlichen – und was wann veröffentlicht wurde, mit einem Klick zurück.",
+      "en": "Publish projects – and what was published when, one click back."
     },
     "icon": "rocket",
     "nav": false
@@ -39,5 +43,27 @@
     "*": [
       "tabs"
     ]
-  }
+  },
+  "settings": [
+    {
+      "key": "snapshot",
+      "type": "switch",
+      "label": {
+        "de": "Nach jedem Veröffentlichen einen Snapshot anlegen",
+        "en": "Take a snapshot after every deploy"
+      },
+      "default": true
+    },
+    {
+      "key": "keep",
+      "type": "number",
+      "label": {
+        "de": "Eigene Snapshots je Projekt behalten (0 = alle)",
+        "en": "Own snapshots to keep per project (0 = all)"
+      },
+      "default": 10,
+      "min": 0,
+      "max": 100
+    }
+  ]
 }

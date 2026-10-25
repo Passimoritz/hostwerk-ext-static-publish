@@ -1,3 +1,9 @@
+# Changelog
+
+## 2.0.0
+
+- The former extension "Deploy log" lives here now (SDK 3.8 `replaces`): one tab Projects → Publish with the switch "Sites | History", the history per project and the tile "Recent deploys" stay. Same data (data/deploy-log) and settings (snapshot after every publish, snapshots to keep); Hostwerk installs this version for everyone who had the deploy log and removes it. Old links #/ext/deploy-log lead to the extension page. / Die frühere Erweiterung „Deploy-Protokoll“ steckt jetzt hier (SDK 3.8 `replaces`): ein Reiter Projekte → Veröffentlichen mit dem Umschalter „Seiten | Verlauf“, der Verlauf je Projekt und die Kachel „Zuletzt veröffentlicht“ bleiben. Gleiche Daten (data/deploy-log) und Einstellungen (Snapshot nach jedem Veröffentlichen, Snapshots behalten); Hostwerk installiert diese Fassung für alle mit dem Deploy-Protokoll und entfernt es.
+
 ## 1.3.1
 
 - New animated icon and banner in the common Hostwerk style (isometric block). / Neues animiertes Symbol und Banner im gemeinsamen Hostwerk-Stil (isometrischer Block).

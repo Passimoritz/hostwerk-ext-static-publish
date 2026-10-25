@@ -2,6 +2,8 @@
 
 # Publish static sites
 
+> **Since 2.0 with history:** this also contains the former extension “Deploy log”. Under Projects → Publish you switch between **Sites** and **History** – every publish, every Git pull and every published site with time, commit, snapshot and result, one click back. The history per project stays a tab on every project, plus the tile. Anyone who had the deploy log gets this version automatically; data and settings stay.
+
 Put a project online with one click – on GitHub Pages or Cloudflare Pages, free and with HTTPS. With a build command (e.g. npm run build), a check of the folder and history per site.
 
 [Deutsch](README.de.md) · An official [Hostwerk](https://github.com/Passimoritz/hostwerk-public) extension (native extension, Hostwerk 2.10 or newer)
