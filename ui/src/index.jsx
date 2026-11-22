@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Rocket, Plus, Trash2, GitBranch, Cloud, ExternalLink, KeyRound, Save, CheckCircle2, XCircle, Server, Mountain, SearchCheck, History, Undo2, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Rocket, Plus, Trash2, GitBranch, Cloud, ExternalLink, KeyRound, Save, CheckCircle2, XCircle, Server, Mountain, SearchCheck, History, Undo2, RefreshCw, Copy, PlugZap } from 'lucide-react';
 import { put, post, useApi, waitJob, openExternal } from '@hostwerk/api';
 import { Btn, Seg, Field, Modal, Empty, Loading, InfoTip, PathInput, Callout, toast, confirmDialog } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
@@ -18,6 +18,8 @@ const when = (ts) => new Date(ts).toLocaleString(locale(), { dateStyle: 'medium'
 const TARGETS = [{ id: 'github', label: 'GitHub Pages', icon: GitBranch }, { id: 'cloudflare', label: 'Cloudflare Pages', icon: Cloud }, { id: 'codeberg', label: 'Codeberg Pages', icon: Mountain }, { id: 'sftp', label: 'Own server (SFTP)', icon: Server }];
 const targetOf = (id) => TARGETS.find((x) => x.id === id) || TARGETS[0];
 const CAN_ROLLBACK = ['github', 'cloudflare'];
+/** Adresse der veröffentlichten Seite: zuletzt erfolgreich – sonst eigene Domain bzw. die beim eigenen Server eingetragene. */
+const pageUrl = (s) => { const ok = (s.history || []).find((h) => h.ok && h.url); return ok ? ok.url : s.domain ? `https://${s.domain}/` : s.target === 'sftp' && s.sftp && /^https?:\/\//.test(s.sftp.url || '') ? s.sftp.url : null; };
 
 function Accounts({ a, onClose, onSaved }) {
   const [gh, setGh] = useState('');
@@ -49,7 +51,14 @@ function Accounts({ a, onClose, onSaved }) {
 function SiteEditor({ site, projects, onClose, onSave }) {
   const [s, setS] = useState({ check: 'warn', domain: '', sftp: { host: '', port: 22, user: '', path: '', url: '' }, ...site });
   const set = (k) => (v) => setS({ ...s, [k]: v && v.target ? v.target.value : v });
-  const setSftp = (k) => (e) => setS({ ...s, sftp: { ...s.sftp, [k]: e.target.value } });
+  const setSftp = (k) => (e) => { setS({ ...s, sftp: { ...s.sftp, [k]: e.target.value } }); setTested(null); };
+  const [tested, setTested] = useState(null); // { ok, text } – „Verbindung testen“
+  const [testing, setTesting] = useState(false);
+  const testSftp = async () => {
+    setTesting(true); setTested(null);
+    try { setTested(await post('/static-publish/sftp-test', { host: s.sftp.host, port: s.sftp.port, user: s.sftp.user, path: s.sftp.path, ...(s.sftpSecret ? { secret: s.sftpSecret } : { id: s.id }) })); } catch (e) { setTested({ ok: false, text: e.message || String(e) }); }
+    setTesting(false);
+  };
   const repoTarget = s.target === 'github' || s.target === 'codeberg';
   return (
     <Modal title={site.name ? t('Site “{name}”', { name: site.name }) : 'New site'} size="lg" onClose={onClose} footer={<><Btn onClick={onClose}>Cancel</Btn><Btn className="primary" icon={Save} disabled={!s.name || !s.dir} onClick={() => onSave(s)}>Save</Btn></>}>
@@ -79,6 +88,10 @@ function SiteEditor({ site, projects, onClose, onSave }) {
             <Field label={s.sftpLogin ? 'Password or private key (saved – enter to replace)' : 'Password or private key'} hint="Stored sealed on this PC."><input className="input mono" type="password" autoComplete="off" value={s.sftpSecret || ''} onChange={(e) => setS({ ...s, sftpSecret: e.target.value })} /></Field>
             <Field label="Folder on the server" hint="Absolute path, e.g. /var/www/club-site – files that no longer belong to the site are removed there."><input className="input mono" value={s.sftp.path} onChange={setSftp('path')} placeholder="/var/www/club-site" /></Field>
             <Field label="Address of the page (optional)"><input className="input mono" value={s.sftp.url} onChange={setSftp('url')} placeholder="https://club.example.com/" /></Field>
+            <div className="row-tight sp-test">
+              <Btn className="sm" icon={PlugZap} busy={testing} disabled={!s.sftp.host || !s.sftp.user || (!s.sftpSecret && !s.sftpLogin)} onClick={testSftp}>Test connection</Btn>
+              {tested && <span className={`small ${tested.ok ? 'c-ok' : 'c-err'}`} role="status">{tested.text}</span>}
+            </div>
           </div>
         )}
         {s.target !== 'sftp' && (
@@ -123,10 +136,12 @@ function StaticPublishPage({ seg = null }) {
   if (!d) return <Loading />;
   const saveSites = async (sites) => st.setData(await put('/static-publish/sites', { sites }));
   const saveSite = async (s) => { try { await saveSites(d.sites.some((x) => x.id === s.id) ? d.sites.map((x) => (x.id === s.id ? s : x)) : [...d.sites, s]); setEdit(null); } catch (e) { toast.error(e); } };
+  // Gleiche Einstellungen, anderes Ziel (z. B. Test- und Live-Server): Kopie ohne Verlauf und ohne gespeicherte Anmeldung
+  const duplicate = (s) => { const { history: _h, sftpLogin: _l, sftpSecret: _p, ...rest } = s; setEdit({ ...rest, id: uid(), name: t('{name} (copy)', { name: s.name }), sftp: { ...(s.sftp || {}) } }); }; // eslint-disable-line no-unused-vars
   const remove = async (s) => { if (await confirmDialog({ title: t('Remove “{name}”?', { name: s.name }), text: 'Only the entry in Hostwerk – the published page stays online.', confirm: 'Remove', danger: true })) saveSites(d.sites.filter((x) => x.id !== s.id)); };
   const deploy = async (s) => {
     setBusy(s.id);
-    try { const r = await post(`/static-publish/sites/${s.id}/deploy`); const j = await waitJob(r.job); toast.success(t('Published: {url}', { url: j.result.url })); } catch (e) { toast.error(e); }
+    try { const r = await post(`/static-publish/sites/${s.id}/deploy`); const j = await waitJob(r.job); toast.success(j.result && j.result.url ? t('Published: {url}', { url: j.result.url }) : t('Published')); } catch (e) { toast.error(e); }
     st.reload({ silent: true }); setBusy(null);
   };
   const check = async (s) => { setBusy(`c${s.id}`); try { setReport({ site: s, r: await post(`/static-publish/sites/${s.id}/check`) }); } catch (e) { toast.error(e); } setBusy(null); };
@@ -160,21 +175,22 @@ function StaticPublishPage({ seg = null }) {
             const where = s.target === 'cloudflare' ? s.project : s.target === 'sftp' ? `${(s.sftp || {}).user || ''}@${(s.sftp || {}).host || ''}` : s.repo;
             return (
               <div key={s.id} className="card">
-                <div className="card-head"><T.icon size={16} /><h3 className="ellipsis">{s.name}</h3>
-                  <div className="right row-tight"><Btn className="xs ghost" onClick={() => setEdit(s)}>Edit</Btn><Btn className="xs ghost icon" icon={Trash2} title={t('Remove {name}', { name: s.name })} aria-label={t('Remove {name}', { name: s.name })} onClick={() => remove(s)} /></div></div>
+                <div className="card-head sp-head"><T.icon size={16} /><h3 className="ellipsis" title={s.name}>{s.name}</h3>
+                  <div className="right row-tight"><Btn className="xs ghost" onClick={() => setEdit(s)}>Edit</Btn><Btn className="xs ghost icon" icon={Copy} title={t('Duplicate')} aria-label={t('Duplicate {name}', { name: s.name })} onClick={() => duplicate(s)} /><Btn className="xs ghost icon" icon={Trash2} title={t('Remove {name}', { name: s.name })} aria-label={t('Remove {name}', { name: s.name })} onClick={() => remove(s)} /></div></div>
                 <div className="card-body stack sp-body">
                   <div className="small muted ellipsis" title={s.dir}>{s.dir}{s.out && s.out !== '.' ? ` → ${s.out}` : ''}</div>
                   <div className="small">{T.label} · {where}{s.domain ? <span className="muted"> · {s.domain}</span> : null}{s.build ? <span className="muted"> · {s.build}</span> : null}</div>
                   {last && (
                     <div className={`small row-tight ${last.ok ? '' : 'c-err'}`}>
                       {last.ok ? <CheckCircle2 size={14} className="c-ok" aria-label="Published" /> : <XCircle size={14} aria-label="Failed" />}
-                      <span>{when(last.t)}</span>
+                      <span className="sp-when">{when(last.t)}</span>
                       {last.ok ? (last.url ? <button type="button" className="link-btn" onClick={() => openExternal(last.url)}>{last.url}</button> : null) : <span className="ellipsis">{last.error}</span>}
                     </div>
                   )}
                   <div className="row-tight sp-actions">
                     <Btn className="primary sm" icon={Rocket} busy={busy === s.id} onClick={() => deploy(s)}>Publish now</Btn>
                     <Btn className="sm" icon={SearchCheck} busy={busy === `c${s.id}`} onClick={() => check(s)}>Check</Btn>
+                    {pageUrl(s) && <Btn className="sm ghost" icon={ExternalLink} title={pageUrl(s)} onClick={() => openExternal(pageUrl(s))}>Open page</Btn>}
                     {(s.history || []).length > 0 && <Btn className="sm ghost" icon={History} onClick={() => setHist(s)}>History</Btn>}
                     <InfoTip title="What happens">Hostwerk runs the build command (if set), checks the built files (links, pictures, index.html, size) and uploads them. Every publish replaces the previous version – the history can go back.</InfoTip>
                   </div>
@@ -194,7 +210,7 @@ function StaticPublishPage({ seg = null }) {
               <div key={`${e.t}-${i}`} className="list-item row-tight">
                 {e.ok ? <CheckCircle2 size={14} className="c-ok" aria-label="Published" /> : <XCircle size={14} className="c-err" aria-label="Failed" />}
                 <span className="small grow">{when(e.t)}{e.restored ? <span className="muted"> · {t('back to {when}', { when: when(e.restored) })}</span> : null}{!e.ok ? <span className="c-err"> · {e.error}</span> : null}</span>
-                {i === 0 ? <span className="badge ok">Online</span>
+                {i === hist.history.findIndex((x) => x.ok) ? <span className="badge ok">Online</span>
                   : e.ok && e.ref && CAN_ROLLBACK.includes(hist.target) && (!e.target || e.target === hist.target) ? <Btn className="xs" icon={Undo2} busy={busy === hist.id} onClick={() => rollback(hist, i)}>Go back</Btn> : null}
               </div>
             ))}
@@ -212,6 +228,8 @@ function StaticPublishPage({ seg = null }) {
  */
 function PublishArea({ path = [] }) {
   const [view, setView] = useState(path[0] === 'log' ? 'log' : 'sites');
+  // Adresse wechselt, während die Seite offen ist (Link auf …/log, Zurück im Browser): Ansicht mitziehen
+  useEffect(() => { setView(path[0] === 'log' ? 'log' : 'sites'); }, [path[0]]); // eslint-disable-line react-hooks/exhaustive-deps
   const seg = (
     <div className="sub-nav sp-views">
       <Seg value={view} onChange={setView} options={[{ id: 'sites', label: t('Sites'), icon: Rocket }, { id: 'log', label: t('History'), icon: History }]} />

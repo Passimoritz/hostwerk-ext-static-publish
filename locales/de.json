@@ -256,5 +256,20 @@
   "Entry not found": "Eintrag nicht gefunden",
   "There is no snapshot for this state any more.": "Für diesen Stand gibt es keinen Snapshot mehr.",
   "The snapshot of this state was deleted.": "Der Snapshot dieses Stands wurde gelöscht.",
-  "Sites": "Seiten"
+  "Sites": "Seiten",
+  "The server did not accept the user and password or key.": "Der Server hat Benutzer und Passwort oder Schlüssel nicht angenommen.",
+  "Enter server and user first.": "Erst Server und Benutzer eintragen.",
+  "Enter the password or private key first.": "Erst Passwort oder privaten Schlüssel eintragen.",
+  "Signed in – enter the folder on the server too.": "Anmeldung klappt – trag noch den Ordner auf dem Server ein.",
+  "Connection works – the folder {path} is there.": "Verbindung klappt – der Ordner {path} ist da.",
+  "{path} is a file, not a folder.": "{path} ist eine Datei, kein Ordner.",
+  "Signed in – the folder {path} does not exist yet; it is created on the first publish.": "Anmeldung klappt – den Ordner {path} gibt es noch nicht; er entsteht beim ersten Veröffentlichen.",
+  "The server {host} was not found – check the name.": "Den Server {host} gibt es nicht – prüf den Namen.",
+  "Nothing answers on port {port} – is it the SFTP port?": "Auf Port {port} antwortet nichts – ist das der SFTP-Port?",
+  "No answer from the server – check address, port and firewall.": "Keine Antwort vom Server – prüf Adresse, Port und Firewall.",
+  "Test connection": "Verbindung testen",
+  "Open page": "Seite öffnen",
+  "Duplicate": "Duplizieren",
+  "Duplicate {name}": "{name} duplizieren",
+  "{name} (copy)": "{name} (Kopie)"
 }

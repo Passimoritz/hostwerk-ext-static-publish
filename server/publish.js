@@ -165,7 +165,9 @@ const CORE_TEXT = [
 ];
 function fromCore(r, base = '/') {
   const b = `/${String(base || '/').replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/');
-  const rel = (u) => { const s = String(u || ''); if (!s.startsWith(b)) return s.replace(/^\/+/, '') || 'index.html'; const x = s.slice(b.length); return !x ? 'index.html' : x.endsWith('/') ? `${x}index.html` : x; };
+  // Hostwerk meldet Adressen URL-kodiert (%C3%BC) – im Bericht steht der Dateiname, wie er im Ordner heißt
+  const dec = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
+  const rel = (u) => { const s = dec(String(u || '')); if (!s.startsWith(b)) return s.replace(/^\/+/, '') || 'index.html'; const x = s.slice(b.length); return !x ? 'index.html' : x.endsWith('/') ? `${x}index.html` : x; };
   const errors = []; const warnings = [];
   for (const p of (r && r.pages) || []) {
     for (const i of p.issues || []) {

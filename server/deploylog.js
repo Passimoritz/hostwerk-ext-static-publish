@@ -93,7 +93,16 @@ function createService(host, deps = {}) {
     if (wantSnap) {
       let snap = null;
       try { snap = await takeSnapshot(e); } catch (err) { host.log('snapshot failed:', err.message); }
-      await change((s) => { const x = (s.projects[e.projectId] || { entries: [] }).entries.find((y) => y.id === e.id); if (x) x.snapshot = snap || latestSnapshot(e.projectId, t); });
+      await change((s) => {
+        const list = (s.projects[e.projectId] || { entries: [] }).entries;
+        const x = list.find((y) => y.id === e.id);
+        if (!x) return;
+        x.snapshot = snap || latestSnapshot(e.projectId, t);
+        // Zwei Veröffentlichungen kurz nacheinander: Hostwerk legt dann EINEN Snapshot für beide an – er zeigt den neueren
+        // Stand. Nur der neuere Eintrag behält ihn, sonst holte „Zurück“ beim älteren den falschen Stand zurück.
+        const sid = x.snapshot && x.snapshot.id;
+        if (sid) list.filter((y) => y.snapshot && y.snapshot.id === sid).sort((a, b) => b.t - a.t).slice(1).forEach((y) => { y.snapshot = latestSnapshot(e.projectId, y.t); });
+      });
       await prune(e.projectId).catch(() => {});
       host.broadcast({ type: 'ext-event', id: host.id, event: 'entry', data: { projectId: e.projectId } });
     }

@@ -8,6 +8,7 @@
  *                                                   on older Hostwerk the built-in one right on the files
  *   POST /api/static-publish/sites/:id/deploy     → job: build (optional), check, then publish; result in the site's history
  *   POST /api/static-publish/sites/:id/rollback   → { index } job: back to an earlier publish from the history (GitHub, Cloudflare)
+ *   POST /api/static-publish/sftp-test            → { host, port, user, path, secret? , id? } → { ok, text } sign in, look for the folder, nothing uploaded
  * Targets: GitHub Pages, Cloudflare Pages, Codeberg Pages, own server per SFTP – each with an own domain if wanted.
  * Data: data/static-publish/{sites,accounts}.json – tokens and SFTP logins sealed with Hostwerk's key.
  */
@@ -44,14 +45,21 @@ function activate(host) {
     };
   });
   const projects = () => { try { return (ctx.devtools ? ctx.devtools.list() : []).map((p) => ({ name: p.name, path: p.path })).slice(0, 100); } catch { return []; } };
+  /** Fehler mit Schlüssel (Text + Werte) – der Verlauf übersetzt ihn beim Anzeigen in die aktuelle Sprache. */
+  const fail = (status, text, vars) => Object.assign(host.error(status, text, vars), { errKey: text, errVars: vars || null });
+  /** Verlaufseintrag für die Seite: gespeicherter Schlüssel → Text in der aktuellen Sprache (alte Einträge: Text wie gespeichert). */
+  const shownEntry = (h) => (h && h.errorKey ? { ...h, error: host.t(h.errorKey, h.errorVars || undefined) } : h);
   const view = () => {
     const a = accounts();
     const sftp = a.sftp || {};
-    return { sites: read('sites', []).map((s) => ({ ...s, sftpLogin: !!sftp[s.id] })), accounts: { github: !!a.github, cloudflare: !!a.cloudflare, cloudflareAccount: a.cloudflareAccount || '', codeberg: !!a.codeberg }, projects: projects() };
+    return { sites: read('sites', []).map((s) => ({ ...s, history: (s.history || []).map(shownEntry), sftpLogin: !!sftp[s.id] })), accounts: { github: !!a.github, cloudflare: !!a.cloudflare, cloudflareAccount: a.cloudflareAccount || '', codeberg: !!a.codeberg }, projects: projects() };
   };
   const outDir = (site) => {
+    if (!site.dir || !path.isAbsolute(site.dir)) throw fail(400, 'The project folder does not exist.');
     const out = path.resolve(site.dir, site.out || '.');
-    if (!out.startsWith(path.resolve(site.dir))) throw host.error(400, 'The output folder must be inside the project.');
+    // path.relative statt startsWith: „../projekt-2“ fängt auch mit dem Projektordner an, liegt aber daneben
+    const rel = path.relative(path.resolve(site.dir), out);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) throw fail(400, 'The output folder must be inside the project.');
     return out;
   };
   const tr = (list) => list.map((x) => ({ ...x, text: host.t(x.text) }));
@@ -107,12 +115,12 @@ function activate(host) {
     const job = runJob(host.t('Publish {name}', { name: site.name }), async (j) => {
       const record = (entry) => { const list = read('sites', []); const s = list.find((x) => x.id === site.id); if (s) { s.history = [{ t: Date.now(), target: site.target, ...entry }, ...(s.history || [])].slice(0, 10); write('sites', list); } };
       try {
-        if (!site.dir || !fs.existsSync(site.dir)) throw host.error(400, 'The project folder does not exist.');
+        if (!site.dir || !fs.existsSync(site.dir)) throw fail(400, 'The project folder does not exist.');
         if (site.build) {
           j.progress(10, host.t('Build: {cmd}', { cmd: site.build }));
           const r = await shell(site.build, { cwd: site.dir, timeout: 15 * 60000, env: { ...process.env, CI: '1' } });
           for (const l of `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter(Boolean).slice(-40)) j.log(l);
-          if (r.code !== 0) throw host.error(400, 'The build failed – see the log.');
+          if (r.code !== 0) throw fail(400, 'The build failed – see the log.');
         }
         const out = outDir(site);
         // Seiten-Check vor dem Hochladen: kaputte Links, fehlende Dateien, Debug-Ausgaben
@@ -120,41 +128,42 @@ function activate(host) {
           j.progress(30, host.t('Checking the site …'));
           const c = await checkSite(out, site);
           for (const x of [...c.errors, ...c.warnings].slice(0, 40)) j.log(`${x.file}: ${host.t(x.text)}${x.ref ? ` (${x.ref})` : ''}`);
-          if (c.errors.length && site.check === 'block') throw host.error(400, 'The site check found {n} problem(s) – see the log. Fix them or set the check to “only warn”.', { n: c.errors.length });
+          if (c.errors.length && site.check === 'block') throw fail(400, 'The site check found {n} problem(s) – see the log. Fix them or set the check to “only warn”.', { n: c.errors.length });
         }
         let result;
         if (site.target === 'github') {
-          if (!a.github) throw host.error(409, 'Add a GitHub token first.');
+          if (!a.github) throw fail(409, 'Add a GitHub token first.');
           j.progress(40, host.t('Upload to GitHub Pages …'));
           result = await P.githubPages(out, { token: secrets.open(a.github), repo: site.repo, create: site.create, private: site.private, domain: site.domain }, { log: (l) => j.log(host.t(l)) });
           result.ref = result.commit;
         } else if (site.target === 'codeberg') {
-          if (!a.codeberg) throw host.error(409, 'Add a Codeberg token first.');
+          if (!a.codeberg) throw fail(409, 'Add a Codeberg token first.');
           j.progress(40, host.t('Upload to Codeberg Pages …'));
           result = await P.codebergPages(out, { token: secrets.open(a.codeberg), repo: site.repo, create: site.create, domain: site.domain }, { log: (l) => j.log(host.t(l)) });
         } else if (site.target === 'sftp') {
           const login = (a.sftp || {})[site.id];
-          if (!site.sftp || !site.sftp.host || !site.sftp.user || !login) throw host.error(409, 'Enter server, user and password or key for the own server first.');
+          if (!site.sftp || !site.sftp.host || !site.sftp.user || !login) throw fail(409, 'Enter server, user and password or key for the own server first.');
           const Client = host.lib('ssh2-sftp-client');
           const sftp = new Client();
           const secret = secrets.open(login);
           j.progress(40, host.t('Upload to {host} …', { host: site.sftp.host }));
           try {
-            await sftp.connect({ host: site.sftp.host, port: site.sftp.port || 22, username: site.sftp.user, ...(/BEGIN [A-Z ]*PRIVATE KEY/.test(secret) ? { privateKey: secret } : { password: secret }), readyTimeout: 20000 });
+            await sftp.connect({ host: site.sftp.host, port: site.sftp.port || 22, username: site.sftp.user, ...(/BEGIN [A-Z ]*PRIVATE KEY/.test(secret) ? { privateKey: secret } : { password: secret }), readyTimeout: 20000 })
+              .catch((e) => { throw /authentication methods failed/i.test(e.message || '') ? fail(401, 'The server did not accept the user and password or key.') : e; });
             result = await P.sftpUpload(out, { path: site.sftp.path, url: site.sftp.url || (site.domain ? `https://${site.domain}/` : null) }, sftp, { log: (l) => j.log(host.t(l)) });
           } finally { await sftp.end().catch(() => {}); }
         } else {
-          if (!a.cloudflare || !a.cloudflareAccount) throw host.error(409, 'Add the Cloudflare API token and account ID first.');
+          if (!a.cloudflare || !a.cloudflareAccount) throw fail(409, 'Add the Cloudflare API token and account ID first.');
           P.collect(out); // same checks as for GitHub (index.html, size)
           // Project name is checked here (a–z, 0–9, -) before it goes into any command line
           const args = P.wranglerArgs(out, site.project).map((x) => (/\s/.test(x) ? `"${x}"` : x)).join(' ');
-          if (/["&|<>^%]/.test(out)) throw host.error(400, 'The output folder path contains characters that are not allowed.');
+          if (/["&|<>^%]/.test(out)) throw fail(400, 'The output folder path contains characters that are not allowed.');
           const env = { ...process.env, CLOUDFLARE_API_TOKEN: secrets.open(a.cloudflare), CLOUDFLARE_ACCOUNT_ID: a.cloudflareAccount };
           j.progress(40, host.t('Upload to Cloudflare Pages …'));
           await shell(`npx --yes wrangler@3 pages project create ${site.project} --production-branch main`, { cwd: site.dir, env, timeout: 5 * 60000 }); // exists already → fine
           const r = await shell(`npx ${args}`, { cwd: site.dir, env, timeout: 15 * 60000 });
           for (const l of `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter(Boolean).slice(-30)) j.log(l);
-          if (r.code !== 0) throw host.error(400, /npx|not recognized|not found/i.test(r.stderr) ? 'Node.js (npx) is needed for Cloudflare – install it under Projects & apps → Runtimes.' : 'Cloudflare did not accept the upload – see the log.');
+          if (r.code !== 0) throw fail(400, /npx|not recognized|not found/i.test(r.stderr) ? 'Node.js (npx) is needed for Cloudflare – install it under Projects & apps → Runtimes.' : 'Cloudflare did not accept the upload – see the log.');
           const deployUrl = P.wranglerUrl(r.stdout);
           if (site.domain) { j.log(host.t('Own domain {domain} at Cloudflare …', { domain: site.domain })); await P.cloudflareDomain({ token: secrets.open(a.cloudflare), account: a.cloudflareAccount, project: site.project }, site.domain).catch((e) => j.log(e.message)); }
           result = { url: site.domain ? `https://${site.domain}/` : `https://${site.project}.pages.dev/`, ref: deployUrl };
@@ -162,7 +171,7 @@ function activate(host) {
         record({ ok: true, url: result.url, ref: result.ref || null });
         j.log(`→ ${result.url}`);
         return result;
-      } catch (e) { record({ ok: false, error: e.message }); throw e; }
+      } catch (e) { record({ ok: false, error: e.message, ...(e.errKey ? { errorKey: e.errKey, errorVars: e.errVars || null } : {}) }); throw e; }
     }, { key: `static-publish-${site.id}` });
     res.json({ job: job.id });
   });
@@ -186,12 +195,43 @@ function activate(host) {
       if (site.target === 'cloudflare') {
         if (!a.cloudflare || !a.cloudflareAccount) throw host.error(409, 'Add the Cloudflare API token and account ID first.');
         await P.cloudflareRollback({ token: secrets.open(a.cloudflare), account: a.cloudflareAccount, project: site.project }, entry.ref);
+        // Wie bei GitHub ein neuer Eintrag oben – sonst stünde „Online“ weiter an der Version, die gar nicht mehr online ist
+        const list = read('sites', []); const s = list.find((x) => x.id === site.id);
+        if (s) { s.history = [{ t: Date.now(), target: site.target, ok: true, url: entry.url, ref: entry.ref, restored: entry.t }, ...(s.history || [])].slice(0, 10); write('sites', list); }
         j.log(host.t('Cloudflare shows the earlier version again.'));
         return { url: entry.url };
       }
       throw host.error(400, 'This entry cannot be restored.');
     }, { key: `static-publish-${site.id}` });
     res.json({ job: job.id });
+  });
+
+  // SFTP-Zugang prüfen, bevor zum ersten Mal veröffentlicht wird: anmelden, Zielordner suchen – nichts hochladen
+  host.router.post('/static-publish/sftp-test', async (req, res) => {
+    const b = req.body || {};
+    const hostName = String(b.host || '').trim(); const user = String(b.user || '').trim();
+    if (!hostName || !user) throw host.error(400, 'Enter server and user first.');
+    let secret = typeof b.secret === 'string' && b.secret ? b.secret : '';
+    if (!secret && b.id) { const login = (accounts().sftp || {})[String(b.id)]; if (login) secret = secrets.open(login); }
+    if (!secret) throw host.error(400, 'Enter the password or private key first.');
+    const Client = host.lib('ssh2-sftp-client');
+    const sftp = new Client();
+    try {
+      await sftp.connect({ host: hostName, port: Math.min(65535, Math.max(1, Number(b.port) || 22)), username: user, ...(/BEGIN [A-Z ]*PRIVATE KEY/.test(secret) ? { privateKey: secret } : { password: secret }), readyTimeout: 15000 });
+      const dirPath = String(b.path || '').trim();
+      if (!dirPath) return res.json({ ok: true, text: host.t('Signed in – enter the folder on the server too.') });
+      const kind = await sftp.exists(dirPath);
+      if (kind === 'd') return res.json({ ok: true, text: host.t('Connection works – the folder {path} is there.', { path: dirPath }) });
+      if (kind) return res.json({ ok: false, text: host.t('{path} is a file, not a folder.', { path: dirPath }) });
+      return res.json({ ok: true, text: host.t('Signed in – the folder {path} does not exist yet; it is created on the first publish.', { path: dirPath }) });
+    } catch (e) {
+      const m = String(e && e.message || e);
+      const text = /authentication methods failed|All configured authentication/i.test(m) ? host.t('The server did not accept the user and password or key.')
+        : /ENOTFOUND|getaddrinfo/i.test(m) ? host.t('The server {host} was not found – check the name.', { host: hostName })
+          : /ECONNREFUSED/i.test(m) ? host.t('Nothing answers on port {port} – is it the SFTP port?', { port: Number(b.port) || 22 })
+            : /timed? ?out|ETIMEDOUT/i.test(m) ? host.t('No answer from the server – check address, port and firewall.') : m;
+      return res.json({ ok: false, text });
+    } finally { await sftp.end().catch(() => {}); }
   });
 
   // 2.0: Teil „Verlauf“ (bis 1.1 eigene Erweiterung „Deploy-Protokoll“) – Routen /deploy-log/…, Daten data/deploy-log/

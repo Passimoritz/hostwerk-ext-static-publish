@@ -145,3 +145,20 @@ test('„Seiten veröffentlichen“ ohne passendes Projekt → eigener Eintrag, 
   assert.deepStrictEqual(o.projects.map((p) => p.id).sort(), ['p1', 'site-s2']);
   assert.strictEqual(svc.projectView('site-s2').real, false);
 });
+
+test('zwei Deploys kurz nacheinander, Hostwerk liefert denselben Snapshot → nur der neuere Eintrag behält ihn', async () => {
+  const f = fakeHostwerk();
+  // Hostwerk legt pro Projekt nur einen Snapshot zur gleichen Zeit an: beide Aufrufe bekommen dieselbe Aufgabe
+  const shared = { id: 'snapX', createdAt: Date.now() + 1000 };
+  let release; const gate = new Promise((r) => { release = r; });
+  f.host.ctx.snapshots.create = () => ({ promise: gate.then(() => { if (!f.snaps.includes(shared)) f.snaps.push(shared); return shared; }) });
+  const svc = createService(f.host);
+  svc.onMessage(jobMsg('deploy-t1', 'done'));
+  await new Promise((r) => setTimeout(r, 15));
+  svc.onMessage(jobMsg('deploy-t1', 'done'));
+  await new Promise((r) => setTimeout(r, 15));
+  release(); await new Promise((r) => setTimeout(r, 30)); await svc.idle();
+  const [newer, older] = svc.projectView('p1').entries;
+  assert.strictEqual(newer.snapshot.id, 'snapX');
+  assert.ok(!older.snapshot || older.snapshot.id !== 'snapX', 'the older entry must not point to the newer state');
+});

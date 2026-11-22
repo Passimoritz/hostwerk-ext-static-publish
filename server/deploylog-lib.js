@@ -38,7 +38,7 @@ function classify(msg, look) {
       const p = s.dir ? look.projectByPath(s.dir) : null;
       return {
         kind: 'publish', projectId: p ? p.id : `site-${m[1]}`, projectName: p ? p.name : s.name, path: p ? p.path : s.dir || null,
-        target: { id: m[1], name: s.name, type: s.target === 'cloudflare' ? 'cloudflare' : 'github' }, result: j.result && j.result.url ? { url: String(j.result.url).slice(0, 300) } : null, ...base,
+        target: { id: m[1], name: s.name, type: ['github', 'cloudflare', 'codeberg', 'sftp'].includes(s.target) ? s.target : 'github' }, result: j.result && j.result.url ? { url: String(j.result.url).slice(0, 300) } : null, ...base,
       };
     }
     m = /^snapshot-restore-([\w-]+)$/.exec(j.key);

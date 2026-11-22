@@ -6,7 +6,7 @@ const L = require('../server/deploylog-lib');
 
 const look = {
   target: (id) => (id === 't1' ? { projectId: 'p1', projectPath: 'C:/web/shop', name: 'Live server', type: 'sftp', pass: 'sealed' } : null),
-  site: (id) => (id === 's1' ? { id: 's1', name: 'Docs', dir: 'C:\\web\\shop\\docs', target: 'github' } : id === 's2' ? { id: 's2', name: 'Loose site', dir: 'D:/other', target: 'cloudflare' } : null),
+  site: (id) => (id === 's1' ? { id: 's1', name: 'Docs', dir: 'C:\\web\\shop\\docs', target: 'github' } : id === 's2' ? { id: 's2', name: 'Loose site', dir: 'D:/other', target: 'cloudflare' } : id === 's3' ? { id: 's3', name: 'Berg', dir: 'D:/b', target: 'codeberg' } : id === 's4' ? { id: 's4', name: 'Own', dir: 'D:/o', target: 'sftp' } : null),
   project: (id) => (id === 'p1' ? { id: 'p1', name: 'Shop', path: 'C:/web/shop' } : null),
   projectByPath: (d) => (L.samePath(d, 'C:/web/shop', { inside: true, win: true }) ? { id: 'p1', name: 'Shop', path: 'C:/web/shop' } : null),
 };
@@ -37,6 +37,9 @@ test('„Seiten veröffentlichen“: Projekt über den Ordner gefunden, sonst ei
   assert.deepStrictEqual([a.kind, a.projectId, a.target.type, a.result.url], ['publish', 'p1', 'github', 'https://me.github.io/docs/']);
   const b = L.classify(job('static-publish-s2', 'error', { error: 'build failed' }), look);
   assert.deepStrictEqual([b.projectId, b.projectName, b.target.type, b.ok], ['site-s2', 'Loose site', 'cloudflare', false]);
+  // Codeberg und eigener Server bleiben, was sie sind (früher stand dort „GitHub Pages“)
+  assert.strictEqual(L.classify(job('static-publish-s3', 'done'), look).target.type, 'codeberg');
+  assert.strictEqual(L.classify(job('static-publish-s4', 'done'), look).target.type, 'sftp');
 });
 
 test('Git-Pull kommt aus dem Änderungsprotokoll, Snapshot-Zurückholen aus der Aufgabe', () => {

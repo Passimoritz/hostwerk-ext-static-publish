@@ -23,7 +23,7 @@ const KIND = {
   restore: { label: 'Snapshot restored', icon: Camera },
   rollback: { label: 'Back to an earlier state', icon: RotateCcw },
 };
-const TARGET = { sftp: 'SFTP', ftp: 'FTP', git: 'Git push', github: 'GitHub Pages', cloudflare: 'Cloudflare Pages' };
+const TARGET = { sftp: 'SFTP', ftp: 'FTP', git: 'Git push', github: 'GitHub Pages', cloudflare: 'Cloudflare Pages', codeberg: 'Codeberg Pages' };
 
 /** Reload when the server reports a new entry (host.broadcast → ext-event). */
 function useLive(reload) {

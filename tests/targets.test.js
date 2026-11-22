@@ -85,6 +85,10 @@ test('site check with Hostwerk (SDK 3.1): core result in the own form – files 
   for (const x of [...r.errors, ...r.warnings]) assert.ok(de[x.text], `German for ${x.text}`);
   assert.strictEqual(P.fromCore(core, '/').errors.find((e) => e.ref === '/css/a.css').text, 'Missing file or page', 'own domain: no base to miss');
   assert.deepStrictEqual(P.fromCore(null), { pages: 0, errors: [], warnings: [], truncated: false });
+  // Umlaute im Dateinamen: Hostwerk meldet die Adresse URL-kodiert, der Bericht zeigt den echten Namen
+  const uml = P.fromCore({ pages: [{ url: '/%C3%BCber/', status: 200, issues: [{ level: 'err', text: 'PHP-Meldung sichtbar' }] }] }, '/');
+  assert.strictEqual(uml.errors[0].file, 'über/index.html');
+  assert.strictEqual(P.fromCore({ pages: [{ url: '/%E0%A4%A/', status: 200, issues: [{ level: 'err', text: 'PHP-Meldung sichtbar' }] }] }, '/').errors[0].file, '%E0%A4%A/index.html', 'broken escape stays as it is');
 });
 
 test('site check: the page uses Hostwerk\'s check when it is there and falls back to its own', async () => {
@@ -198,4 +202,63 @@ test('messages of the new targets have German', () => {
   const de = require('../locales/de.json');
   for (const s of ['Missing file or page', 'Domain like www.example.com – without https:// and without a path', 'Codeberg does not accept the token.', 'This entry cannot be restored.', 'Target folder on the server as an absolute path, at least two levels deep – e.g. /var/www/my-site']) assert.ok(de[s], s);
   void crypto;
+});
+
+/** Hostwerk-Double für die Routen von index.js (Aufträge laufen sofort, Sprache umschaltbar). */
+function spHost(lang = { de: true }) {
+  const routes = {};
+  const jobs = [];
+  const DE = { 'The project folder does not exist.': 'Der Projektordner existiert nicht.' };
+  const tr = (s, v) => { const x = lang.de && DE[s] ? DE[s] : s; return v ? x.replace(/\{(\w+)\}/g, (m, k) => (v[k] !== undefined ? v[k] : m)) : x; };
+  const find = (n) => { for (const p of [n, path.join(__dirname, '..', '..', '..', 'hostwerk', 'node_modules', n)]) { try { return require(p); } catch { /* next */ } } return null; };
+  const host = {
+    ctx: { paths: { data: fs.mkdtempSync(path.join(os.tmpdir(), 'sp-data-')) }, devtools: null },
+    core: (n) => (n === 'jobs' ? { runJob: (title, fn) => { const j = { id: `j${jobs.length}`, promise: fn({ progress: () => {}, log: () => {} }).catch((e) => e) }; jobs.push(j); return j; } } : n === 'util' ? { exec: async () => ({ code: 0 }) } : { seal: (x) => `enc:${x}`, open: (x) => String(x).replace(/^enc:/, '') }),
+    router: { get: (p, fn) => { routes[`GET ${p}`] = fn; }, put: (p, fn) => { routes[`PUT ${p}`] = fn; }, post: (p, fn) => { routes[`POST ${p}`] = fn; } },
+    t: tr, error: (status, m, v) => Object.assign(new Error(tr(m, v)), { status }), lib: (n) => find(n), service: () => null,
+  };
+  const call = async (key, body = {}, params = {}) => { let out; await routes[key]({ body, params, query: {} }, { json: (x) => { out = x; } }); return out; };
+  return { host, routes, call, jobs, find };
+}
+
+test('history errors are stored as keys and shown in the current language', async () => {
+  const lang = { de: true };
+  const f = spHost(lang);
+  require('../server/index').activate(f.host);
+  await f.call('PUT /static-publish/sites', { sites: [{ id: 'abc123', name: 'S', dir: path.join(os.tmpdir(), 'gibt-es-nicht-sp'), out: '.', target: 'github', repo: 'a/b' }] });
+  await f.call('POST /static-publish/sites/:id/deploy', {}, { id: 'abc123' });
+  await f.jobs[0].promise;
+  const stored = JSON.parse(fs.readFileSync(path.join(f.host.ctx.paths.data, 'static-publish', 'sites.json'), 'utf8'))[0].history[0];
+  assert.strictEqual(stored.errorKey, 'The project folder does not exist.');
+  assert.strictEqual((await f.call('GET /static-publish')).sites[0].history[0].error, 'Der Projektordner existiert nicht.');
+  lang.de = false;
+  assert.strictEqual((await f.call('GET /static-publish')).sites[0].history[0].error, 'The project folder does not exist.', 'English after the switch');
+});
+
+test('SFTP: test the connection – missing fields, nothing listening, login refused', async (t) => {
+  const f = spHost();
+  require('../server/index').activate(f.host);
+  await assert.rejects(f.call('POST /static-publish/sftp-test', { host: '', user: 'x', secret: 'y' }), /server and user/);
+  await assert.rejects(f.call('POST /static-publish/sftp-test', { host: '127.0.0.1', user: 'x' }), /password or private key/);
+  const ssh2 = f.find('ssh2');
+  if (!ssh2 || !f.find('ssh2-sftp-client')) { t.skip('ssh2 not available'); return; }
+  const net = require('net');
+  const free = () => new Promise((r) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+  const closed = await free();
+  let r = await f.call('POST /static-publish/sftp-test', { host: '127.0.0.1', port: closed, user: 'x', secret: 'pw' });
+  assert.strictEqual(r.ok, false); assert.match(r.text, /Nothing answers on port/);
+  const srv = new ssh2.Server({ hostKeys: [ssh2.utils.generateKeyPairSync('ed25519').private] }, (c) => { c.on('authentication', (ctx) => ctx.reject(['password'])); c.on('error', () => {}); });
+  const port = await free();
+  await new Promise((res) => srv.listen(port, '127.0.0.1', res));
+  try {
+    // gespeicherter Zugang der Seite wird genommen, wenn kein neuer mitkommt
+    await f.call('PUT /static-publish/sites', { sites: [{ id: 'sftp01', name: 'Own', dir: os.tmpdir(), target: 'sftp', sftp: { host: '127.0.0.1', port, user: 'x', path: '/www' }, sftpSecret: 'gespeichert' }] });
+    r = await f.call('POST /static-publish/sftp-test', { host: '127.0.0.1', port, user: 'x', path: '/www', id: 'sftp01' });
+    assert.strictEqual(r.ok, false); assert.match(r.text, /did not accept/);
+  } finally { srv.close(); }
+});
+
+test('new texts have German', () => {
+  const de = require('../locales/de.json');
+  for (const s of ['Enter server and user first.', 'Enter the password or private key first.', 'Signed in – enter the folder on the server too.', 'Connection works – the folder {path} is there.', '{path} is a file, not a folder.', 'Signed in – the folder {path} does not exist yet; it is created on the first publish.', 'The server {host} was not found – check the name.', 'Nothing answers on port {port} – is it the SFTP port?', 'No answer from the server – check address, port and firewall.', 'Test connection', 'Open page', 'Duplicate', '{name} (copy)']) assert.ok(de[s], s);
 });
